@@ -1,0 +1,16 @@
+{
+  "servers": [
+    {
+      "id": "test",
+      "name": "Fake test server",
+      "directory": "/home/mathieu/Desktop/mcsd/examples",
+      "jar": "",
+      "java_path": "/home/mathieu/Desktop/mcsd/examples/fakeserver.sh",
+      "java_args": [],
+      "server_args": [],
+      "autostart": true,
+      "autorestart": true,
+      "stop_timeout_seconds": 10
+    }
+  ]
+}
