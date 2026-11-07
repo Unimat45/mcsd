@@ -15,12 +15,13 @@ use crate::logbuf::{self, LogBuffer, LogLine, RotatingFile, Stream};
 use crate::parse::{self, Event};
 use crate::paths::Paths;
 use crate::procutil;
+use crate::properties;
 use crate::providers::Providers;
 use crate::registry::{ServerConfig, ServerKind};
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Serialize;
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
@@ -372,7 +373,7 @@ impl Instance {
             "# Accepted via mcsd (https://aka.ms/MinecraftEULA)\neula=true\n",
         )
         .await?;
-        set_property(&dir.join("server.properties"), "server-port", &cfg.port.to_string())?;
+        properties::set_in_file(&dir.join(properties::FILE_NAME), "server-port", &cfg.port.to_string())?;
 
         if cfg.java_path.as_deref().is_none_or(|p| p.trim().is_empty()) {
             progress(format!("Checking for Java {java_major}..."));
@@ -755,42 +756,4 @@ fn describe_exit(s: &std::process::ExitStatus) -> String {
         }
     }
     "terminated".into()
-}
-
-/// Set `key=value` in a server.properties file, creating it if needed.
-pub fn set_property(file: &Path, key: &str, value: &str) -> Result<()> {
-    let text = std::fs::read_to_string(file).unwrap_or_default();
-    let mut found = false;
-    let mut lines: Vec<String> = text
-        .lines()
-        .map(|l| {
-            let is_key = l.split_once('=').is_some_and(|(k, _)| k.trim() == key) && !l.trim_start().starts_with('#');
-            if is_key {
-                found = true;
-                format!("{key}={value}")
-            } else {
-                l.to_string()
-            }
-        })
-        .collect();
-    if !found {
-        lines.push(format!("{key}={value}"));
-    }
-    std::fs::write(file, lines.join("\n") + "\n").with_context(|| format!("writing {}", file.display()))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::set_property;
-
-    #[test]
-    fn edits_properties() {
-        let f = std::env::temp_dir().join(format!("mcsd-props-{}.properties", std::process::id()));
-        std::fs::write(&f, "#comment\nserver-port=25565\nmotd=hi\n").unwrap();
-        set_property(&f, "server-port", "25570").unwrap();
-        set_property(&f, "max-players", "5").unwrap();
-        let t = std::fs::read_to_string(&f).unwrap();
-        assert_eq!(t, "#comment\nserver-port=25570\nmotd=hi\nmax-players=5\n");
-        let _ = std::fs::remove_file(f);
-    }
 }

@@ -1,12 +1,13 @@
 //! Owns all instances: registry persistence, creation/removal, boot and
 //! graceful shutdown, resource sampling.
 
-use crate::instance::{Ctx, Instance, Status, set_property};
+use crate::instance::{Ctx, Instance, Status};
 use crate::paths::Paths;
 use crate::procutil;
+use crate::properties::{self, Properties, Property};
 use crate::registry::{self, ServerConfig, ServerKind};
-use anyhow::{Context, Result, bail};
-use serde::Deserialize;
+use anyhow::{Context, Result, anyhow, bail};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
@@ -53,10 +54,33 @@ pub struct UpdateRequest {
     pub java_major: Option<u32>,
 }
 
+/// How to change a server.properties file.
+pub enum PropertiesEdit {
+    /// Change/add some keys and remove others; everything else is preserved.
+    Patch { set: BTreeMap<String, String>, remove: Vec<String> },
+    /// Replace the whole file.
+    Raw(String),
+}
+
+#[derive(Serialize, Debug)]
+pub struct PropertiesView {
+    /// The file exists on disk.
+    pub exists: bool,
+    /// Minecraft has written the full file (i.e. the server started at least
+    /// once), so the keys present are exactly the ones this version supports.
+    pub generated: bool,
+    pub entries: Vec<Property>,
+    pub raw: String,
+    /// The server is running: changes apply on the next restart.
+    pub restart_required: bool,
+}
+
 pub struct Manager {
     pub ctx: Arc<Ctx>,
     instances: RwLock<BTreeMap<String, Arc<Instance>>>,
     save_lock: Mutex<()>,
+    /// Serialises read-modify-write cycles on server.properties files.
+    props_lock: tokio::sync::Mutex<()>,
 }
 
 impl Manager {
@@ -71,6 +95,7 @@ impl Manager {
             ctx,
             instances: RwLock::new(map),
             save_lock: Mutex::new(()),
+            props_lock: tokio::sync::Mutex::new(()),
         });
 
         // Debounced registry writer.
@@ -242,7 +267,8 @@ impl Manager {
         if let Some(port) = req.port
             && inst.dir().exists()
         {
-            set_property(&inst.dir().join("server.properties"), "server-port", &port.to_string())?;
+            let _g = self.props_lock.lock().await;
+            properties::set_in_file(&inst.dir().join(properties::FILE_NAME), "server-port", &port.to_string())?;
         }
         inst.update_config(|c| {
             if let Some(v) = req.version {
@@ -283,6 +309,79 @@ impl Manager {
             inst.sys("Settings saved; they apply on the next restart.");
         }
         Ok(inst)
+    }
+
+    pub fn properties(&self, name: &str) -> Result<PropertiesView> {
+        let inst = self.get(name).context("no such server")?;
+        let path = inst.dir().join(properties::FILE_NAME);
+        let raw = match std::fs::read(&path) {
+            Ok(bytes) => Some(properties::decode(&bytes)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+            Err(e) => return Err(e).with_context(|| format!("reading {}", path.display())),
+        };
+        let entries = raw.as_deref().map(Properties::parse).unwrap_or_default().entries();
+        Ok(PropertiesView {
+            exists: raw.is_some(),
+            generated: raw
+                .as_deref()
+                .is_some_and(|r| r.trim_start().starts_with("#Minecraft server properties")),
+            entries,
+            raw: raw.unwrap_or_default(),
+            restart_required: inst.status().is_active(),
+        })
+    }
+
+    /// Edit server.properties. `server-port` stays in sync with the port mcsd
+    /// tracks (conflicts with other servers are rejected).
+    pub async fn edit_properties(&self, name: &str, edit: PropertiesEdit) -> Result<PropertiesView> {
+        let _g = self.props_lock.lock().await;
+        let inst = self.get(name).context("no such server")?;
+        if inst.status() == Status::Installing {
+            bail!("wait for the install to finish");
+        }
+        let path = inst.dir().join(properties::FILE_NAME);
+        let mut props = match edit {
+            PropertiesEdit::Raw(text) => Properties::parse(&properties::ascii_escape_raw(&text)),
+            PropertiesEdit::Patch { set, remove } => {
+                let mut p = Properties::load(&path)?.unwrap_or_default();
+                for key in &remove {
+                    p.remove(key);
+                }
+                for (key, value) in &set {
+                    p.set(key, value)?;
+                }
+                p
+            }
+        };
+        for entry in props.entries() {
+            properties::validate_key(&entry.key)?;
+        }
+
+        let current = inst.config().port;
+        let port = match props.get("server-port") {
+            None => {
+                // mcsd needs to know the port: never let it fall back to 25565 silently.
+                props.set("server-port", &current.to_string())?;
+                current
+            }
+            Some(v) => v
+                .trim()
+                .parse::<u16>()
+                .map_err(|_| anyhow!("server-port must be a number between 1024 and 65535"))?,
+        };
+        if port != current {
+            self.check_port(port, name)?;
+        }
+        props.save(&path)?;
+        if port != current {
+            inst.update_config(|c| c.port = port);
+        }
+        inst.sys(if inst.status().is_active() {
+            "server.properties updated; restart the server to apply."
+        } else {
+            "server.properties updated."
+        });
+        self.properties(name)
     }
 
     pub async fn remove(&self, name: &str, delete_files: bool) -> Result<()> {

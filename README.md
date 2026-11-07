@@ -118,6 +118,7 @@ take `?token=` instead.
 | POST | `/servers/{name}/kill\|reinstall` | |
 | POST | `/servers/{name}/command` | `{command}` |
 | GET | `/servers/{name}/logs` | `?tail=200` or `?after=<seq>` |
+| GET/PATCH/PUT | `/servers/{name}/properties` | read server.properties / `{set: {k: v}, remove: [k]}` (keeps comments & order) / `{raw}` replaces the file. `server-port` stays in sync with mcsd's port |
 | GET (WS) | `/servers/{name}/console` | backlog + live lines; text frames are commands |
 | GET | `/versions/{kind}` | available versions |
 | GET/POST | `/java`, `/java/install` | runtimes / `{major}` |

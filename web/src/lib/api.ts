@@ -39,6 +39,15 @@ export interface LogLine {
 	text: string;
 }
 
+export interface PropertiesView {
+	exists: boolean;
+	/** Minecraft wrote the full file: the keys present are the ones this version supports. */
+	generated: boolean;
+	entries: { key: string; value: string }[];
+	raw: string;
+	restart_required: boolean;
+}
+
 export interface JavaRuntime {
 	path: string;
 	major: number;

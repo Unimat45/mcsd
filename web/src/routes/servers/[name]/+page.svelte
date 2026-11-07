@@ -5,6 +5,7 @@
 	import Console from '$lib/Console.svelte';
 	import ServerActions from '$lib/ServerActions.svelte';
 	import StatusBadge from '$lib/StatusBadge.svelte';
+	import PropertiesEditor from '$lib/PropertiesEditor.svelte';
 
 	const name = $derived(page.params.name ?? '');
 	let server = $state<ServerInfo | null>(null);
@@ -27,6 +28,21 @@
 	let saveMsg = $state('');
 	let deleteFiles = $state(false);
 	let dangerError = $state('');
+
+	type Tab = 'console' | 'properties' | 'settings';
+	const tabs: { id: Tab; label: string }[] = [
+		{ id: 'console', label: 'Console' },
+		{ id: 'properties', label: 'server.properties' },
+		{ id: 'settings', label: 'Settings' }
+	];
+	let tab = $state<Tab>('console');
+
+	function openTab(t: Tab) {
+		// server.properties edits can change the port: refresh the settings form.
+		if (t === 'settings' && server) resetForm(server);
+		saveMsg = '';
+		tab = t;
+	}
 
 	async function load() {
 		try {
@@ -160,9 +176,28 @@
 		</div>
 	{/if}
 
-	<Console {name} active={isActive(server.status)} />
+	<div class="mb-4 flex gap-1 border-b border-zinc-800">
+		{#each tabs as t (t.id)}
+			<button
+				class="-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors {tab === t.id
+					? 'border-emerald-500 text-white'
+					: 'border-transparent text-zinc-400 hover:text-zinc-200'}"
+				onclick={() => openTab(t.id)}>{t.label}</button
+			>
+		{/each}
+	</div>
 
-	<div class="mt-8 grid gap-6 lg:grid-cols-3">
+	<!-- kept mounted while hidden so the console websocket survives tab switches -->
+	<div class:hidden={tab !== 'console'}>
+		<Console {name} active={isActive(server.status)} />
+	</div>
+
+	{#if tab === 'properties'}
+		<PropertiesEditor {name} running={isActive(server.status)} />
+	{/if}
+
+	{#if tab === 'settings'}
+	<div class="grid gap-6 lg:grid-cols-3">
 		<form class="card space-y-4 p-6 lg:col-span-2" onsubmit={save}>
 			<h2 class="font-semibold">Settings</h2>
 			<div class="grid gap-4 sm:grid-cols-3">
@@ -231,4 +266,5 @@
 			</div>
 		</div>
 	</div>
+	{/if}
 {/if}

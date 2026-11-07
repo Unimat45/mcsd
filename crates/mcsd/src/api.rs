@@ -5,7 +5,7 @@
 use crate::instance::{Instance, ServerInfo};
 use crate::java::JavaRuntime;
 use crate::logbuf::{LogLine, Stream};
-use crate::manager::{CreateRequest, Manager, UpdateRequest};
+use crate::manager::{CreateRequest, Manager, PropertiesEdit, PropertiesView, UpdateRequest};
 use crate::registry::ServerKind;
 use crate::web;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
@@ -40,6 +40,10 @@ pub fn router(state: AppState) -> Router {
         .route("/servers/{name}/kill", post(kill_server))
         .route("/servers/{name}/reinstall", post(reinstall_server))
         .route("/servers/{name}/command", post(send_command))
+        .route(
+            "/servers/{name}/properties",
+            get(get_properties).patch(patch_properties).put(put_properties),
+        )
         .route("/servers/{name}/logs", get(get_logs))
         .route("/servers/{name}/console", get(console_ws))
         .route("/versions/{kind}", get(list_versions))
@@ -226,6 +230,48 @@ async fn send_command(
 ) -> ApiResult<StatusCode> {
     find(&s, &name)?.send_command(&body.command).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn get_properties(State(s): State<AppState>, Path(name): Path<String>) -> ApiResult<Json<PropertiesView>> {
+    find(&s, &name)?;
+    Ok(Json(s.mgr.properties(&name)?))
+}
+
+#[derive(Deserialize)]
+struct PropertiesPatch {
+    #[serde(default)]
+    set: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    remove: Vec<String>,
+}
+
+/// Change some keys, preserving the rest of the file (comments, order).
+async fn patch_properties(
+    State(s): State<AppState>,
+    Path(name): Path<String>,
+    Json(body): Json<PropertiesPatch>,
+) -> ApiResult<Json<PropertiesView>> {
+    find(&s, &name)?;
+    let edit = PropertiesEdit::Patch { set: body.set, remove: body.remove };
+    Ok(Json(s.mgr.edit_properties(&name, edit).await?))
+}
+
+#[derive(Deserialize)]
+struct PropertiesRaw {
+    raw: String,
+}
+
+/// Replace the whole file.
+async fn put_properties(
+    State(s): State<AppState>,
+    Path(name): Path<String>,
+    Json(body): Json<PropertiesRaw>,
+) -> ApiResult<Json<PropertiesView>> {
+    find(&s, &name)?;
+    if body.raw.len() > 256 * 1024 {
+        return Err(ApiError(StatusCode::PAYLOAD_TOO_LARGE, "server.properties is too large".into()));
+    }
+    Ok(Json(s.mgr.edit_properties(&name, PropertiesEdit::Raw(body.raw)).await?))
 }
 
 #[derive(Deserialize)]

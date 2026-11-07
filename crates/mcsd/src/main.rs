@@ -10,6 +10,7 @@ mod manager;
 mod parse;
 mod paths;
 mod procutil;
+mod properties;
 mod providers;
 mod registry;
 mod service;
