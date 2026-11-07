@@ -14,9 +14,14 @@
 	const history: string[] = [];
 	let historyIdx = -1;
 
+	// A derived string only notifies when its *value* changes. Reading the prop
+	// directly would subscribe to whatever object the parent built it from
+	// (e.g. a polled `server` object) and reopen the socket on every poll.
+	const serverName = $derived(name);
+
 	// Connect (and reconnect) per server.
 	$effect(() => {
-		const server = name;
+		const server = serverName;
 		let closed = false;
 		let retry: ReturnType<typeof setTimeout>;
 		let pending: LogLine[] = [];

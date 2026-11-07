@@ -160,7 +160,7 @@
 		</div>
 	{/if}
 
-	<Console name={server.name} active={isActive(server.status)} />
+	<Console {name} active={isActive(server.status)} />
 
 	<div class="mt-8 grid gap-6 lg:grid-cols-3">
 		<form class="card space-y-4 p-6 lg:col-span-2" onsubmit={save}>
