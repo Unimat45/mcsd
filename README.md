@@ -105,7 +105,9 @@ A debug daemon serves `web/build` from disk: after `just web`, reload the page.
 
 ## Releases
 
-`.github/workflows/build.yml` runs on pushes, pull requests and tags. It
+`.github/workflows/build.yml` runs when `main` changes (i.e. when `develop` is
+merged into it), on `v*` tags, and manually from the Actions tab. Pull requests
+and other branches don't trigger it; run `just check` locally instead. It
 checks the dashboard, lints and tests on Windows, Linux and macOS, then builds:
 
 | Target | Runner |

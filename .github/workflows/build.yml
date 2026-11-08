@@ -1,10 +1,13 @@
 name: build
 
 on:
+  # Merging develop into main is a push to main. Pull requests and pushes to
+  # other branches (develop, feature/*) do not build.
   push:
-    branches: [main, master]
+    branches: [main]
+    # Pushing a v* tag (on main) publishes a release.
     tags: ["v*"]
-  pull_request:
+  # Manual run from the Actions tab.
   workflow_dispatch:
 
 permissions:
