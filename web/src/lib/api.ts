@@ -136,6 +136,11 @@ export function fmtBytes(b: number): string {
 	return gb >= 1 ? `${gb.toFixed(1)} GB` : `${Math.round(b / 1024 ** 2)} MB`;
 }
 
+/** Whole megabytes, to compare process memory with the MB heap setting. */
+export function fmtMB(b: number): string {
+	return b ? `${Math.round(b / 1024 ** 2)}` : '–';
+}
+
 export function fmtUptime(s: number | null): string {
 	if (s == null) return '–';
 	if (s < 60) return `${s}s`;

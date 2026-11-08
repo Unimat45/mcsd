@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { api, fmtBytes, fmtUptime, isActive, type ServerInfo } from '$lib/api';
+	import { api, fmtMB, fmtUptime, isActive, type ServerInfo } from '$lib/api';
 	import Console from '$lib/Console.svelte';
 	import ServerActions from '$lib/ServerActions.svelte';
 	import StatusBadge from '$lib/StatusBadge.svelte';
@@ -158,7 +158,7 @@
 	{/if}
 
 	<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-		{#each [{ k: 'Players', v: isActive(server.status) ? String(server.players.length) : '–' }, { k: 'CPU', v: isActive(server.status) ? `${server.cpu_percent.toFixed(0)}%` : '–' }, { k: 'Memory', v: `${fmtBytes(server.memory_bytes)} / ${server.memory_mb} MB` }, { k: 'Uptime', v: fmtUptime(server.uptime_secs) }, { k: 'Restarts', v: String(server.restarts) }] as stat}
+		{#each [{ k: 'Players', v: isActive(server.status) ? String(server.players.length) : '–' }, { k: 'CPU', v: isActive(server.status) ? `${server.cpu_percent.toFixed(0)}%` : '–' }, { k: 'Memory', v: `${fmtMB(server.memory_bytes)} / ${server.memory_mb} MB` }, { k: 'Uptime', v: fmtUptime(server.uptime_secs) }, { k: 'Restarts', v: String(server.restarts) }] as stat}
 			<div class="card px-4 py-3">
 				<div class="text-xs text-zinc-500">{stat.k}</div>
 				<div class="mt-0.5 font-medium">{stat.v}</div>

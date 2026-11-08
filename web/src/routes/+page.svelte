@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { api, fmtBytes, fmtUptime, isActive, type ServerInfo } from '$lib/api';
+	import { api, fmtMB, fmtUptime, isActive, type ServerInfo } from '$lib/api';
 	import StatusBadge from '$lib/StatusBadge.svelte';
 	import ServerActions from '$lib/ServerActions.svelte';
 
@@ -91,7 +91,7 @@
 					</div>
 					<div>
 						<dt class="text-xs text-zinc-500">Memory</dt>
-						<dd class="font-medium">{fmtBytes(s.memory_bytes)}</dd>
+						<dd class="font-medium">{s.memory_bytes ? `${fmtMB(s.memory_bytes)} MB` : '–'}</dd>
 					</div>
 				</dl>
 				<div class="h-1 overflow-hidden rounded-full bg-zinc-800" title="Process memory vs. {s.memory_mb} MB heap">

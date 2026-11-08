@@ -361,11 +361,12 @@ fn print_lines(logs: &Value, mut last: u64) -> u64 {
     last
 }
 
-fn human_bytes(b: u64) -> String {
+/// Whole megabytes, matching the unit of the `memory_mb` heap setting.
+fn megabytes(b: u64) -> String {
     if b == 0 {
         return "-".into();
     }
-    format!("{:.1}G", b as f64 / 1_073_741_824.0)
+    format!("{}", (b as f64 / 1_048_576.0).round() as u64)
 }
 
 fn human_secs(s: Option<i64>) -> String {
@@ -392,8 +393,8 @@ fn print_table(servers: &[Value]) {
                 s["port"].to_string(),
                 s["players"].as_array().map(|p| p.len()).unwrap_or(0).to_string(),
                 format!(
-                    "{} / {}M",
-                    human_bytes(s["memory_bytes"].as_u64().unwrap_or(0)),
+                    "{} / {} MB",
+                    megabytes(s["memory_bytes"].as_u64().unwrap_or(0)),
                     s["memory_mb"]
                 ),
                 format!("{:.0}%", s["cpu_percent"].as_f64().unwrap_or(0.0)),
@@ -430,7 +431,7 @@ fn print_info(s: &Value) {
     println!("{} ({} {})", field("name"), field("kind"), field("version"));
     println!("  status:       {}", field("status"));
     println!("  port:         {}", field("port"));
-    println!("  memory:       {} MB heap, using {}", field("memory_mb"), human_bytes(s["memory_bytes"].as_u64().unwrap_or(0)));
+    println!("  memory:       {} / {} MB (process / heap)", megabytes(s["memory_bytes"].as_u64().unwrap_or(0)), field("memory_mb"));
     println!("  players:      {}", s["players"].as_array().map(|p| p.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>().join(", ")).filter(|x| !x.is_empty()).unwrap_or("-".into()));
     println!("  uptime:       {}", human_secs(s["uptime_secs"].as_i64()));
     println!("  java:         {} (path: {})", field("java_major"), field("java_path"));
