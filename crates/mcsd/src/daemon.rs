@@ -39,7 +39,7 @@ pub async fn run(paths: Paths, bind_override: Option<String>, shutdown: impl Fut
     let addr = listener.local_addr()?;
     tracing::info!("mcsd {} listening on http://{addr}", env!("CARGO_PKG_VERSION"));
     tracing::info!("data directory: {}", paths.root.display());
-    tracing::info!("run `mcsd dashboard` to get the dashboard login link");
+    tracing::info!("run `mcsd dashboard` to print the dashboard login token");
     if !addr.ip().is_loopback() {
         tracing::warn!(
             "the API is reachable from the network on {addr}; anyone with the token gets console access. Put a TLS reverse proxy in front of it."

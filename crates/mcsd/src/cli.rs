@@ -80,7 +80,7 @@ pub enum Cmd {
     /// Manage Java runtimes
     #[command(subcommand)]
     Java(JavaCmd),
-    /// Print the dashboard URL (with login token)
+    /// Print the dashboard login token (stdout) and how to reach the dashboard (stderr)
     Dashboard,
     /// Install/uninstall mcsd as a system service (start at boot)
     #[command(subcommand)]
@@ -223,7 +223,7 @@ impl Client {
 pub async fn run(paths: Paths, cmd: Cmd) -> Result<()> {
     if let Cmd::Dashboard = cmd {
         let cfg = DaemonConfig::load_or_init(&paths)?;
-        println!("{}/#token={}", cfg.local_url(), cfg.token);
+        print_dashboard_info(&cfg, &paths);
         return Ok(());
     }
     let c = Client::new(&paths)?;
@@ -334,6 +334,34 @@ pub async fn run(paths: Paths, cmd: Cmd) -> Result<()> {
         Cmd::Daemon { .. } | Cmd::Service(_) | Cmd::Dashboard => unreachable!("handled in main"),
     }
     Ok(())
+}
+
+/// The token goes alone on stdout (`TOKEN=$(mcsd dashboard)` works); the
+/// human guidance goes to stderr.
+fn print_dashboard_info(cfg: &DaemonConfig, paths: &Paths) {
+    use std::net::SocketAddr;
+    eprintln!("Dashboard login token:");
+    println!("{}", cfg.token);
+    eprintln!();
+    match cfg.bind.parse::<SocketAddr>() {
+        Ok(addr) if addr.ip().is_loopback() => {
+            let port = addr.port();
+            eprintln!("Dashboard: http://{addr} (only reachable from this machine)");
+            eprintln!();
+            eprintln!("To open it from another computer, either:");
+            eprintln!("  - tunnel it over SSH, then browse to http://127.0.0.1:{port}");
+            eprintln!("      ssh -L {port}:127.0.0.1:{port} <user>@<this-machine>");
+            eprintln!(
+                "  - or set bind = \"0.0.0.0:{port}\" in {} and restart the daemon",
+                paths.config_file().display()
+            );
+            eprintln!("    (put an HTTPS reverse proxy in front: the token is sent with every request)");
+        }
+        Ok(addr) if addr.ip().is_unspecified() => {
+            eprintln!("Dashboard: http://<this-machine's-address>:{}", addr.port());
+        }
+        _ => eprintln!("Dashboard: http://{}", cfg.bind),
+    }
 }
 
 async fn action(c: &Client, name: &str, verb: &str, done: &str) -> Result<()> {

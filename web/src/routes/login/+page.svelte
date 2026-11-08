@@ -28,7 +28,7 @@
 			<h1 class="text-xl font-semibold">Connect to mcsd</h1>
 			<p class="mt-2 text-sm text-zinc-400">
 				Run <code class="rounded bg-zinc-800 px-1.5 py-0.5 text-emerald-300">mcsd dashboard</code> on the machine
-				running the daemon and open the printed link, or paste the token from its <code>config.toml</code>.
+				running the daemon and paste the token it prints.
 			</p>
 		</div>
 		<div>

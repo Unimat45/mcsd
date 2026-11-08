@@ -37,7 +37,7 @@ web/           SvelteKit dashboard (static SPA, embedded into the binary)
 cd web && npm install && npm run build && cd ..
 cargo build --release
 ./target/release/mcsd daemon                 # foreground; Ctrl+C stops servers gracefully
-./target/release/mcsd dashboard              # prints http://127.0.0.1:8765/#token=...
+./target/release/mcsd dashboard              # prints the login token for http://127.0.0.1:8765
 ```
 
 CLI (in another terminal):
@@ -80,6 +80,13 @@ The API listens on `127.0.0.1:8765` by default, and every call needs the
 bearer token from `config.toml`. Anyone with the token has console access,
 which on most servers means operator rights. If you change `bind` to expose
 it, put a TLS reverse proxy in front of it.
+
+To manage a remote host without exposing the API, tunnel it over SSH and
+paste the token printed by `mcsd dashboard` (run on that host):
+
+```sh
+ssh -L 8765:127.0.0.1:8765 user@minecraft-host   # then open http://127.0.0.1:8765
+```
 
 ## Development
 

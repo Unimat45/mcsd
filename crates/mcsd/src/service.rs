@@ -48,10 +48,10 @@ mod platform {
 
     fn unit_path() -> Result<PathBuf> {
         if is_root() {
-            Ok(PathBuf::from("/etc/systemd/system/mcsd.service"))
+            Ok(PathBuf::from(format!("/etc/systemd/system/{SERVICE_NAME}.service")))
         } else {
             let base = directories::BaseDirs::new().context("no home directory")?;
-            Ok(base.config_dir().join("systemd/user/mcsd.service"))
+            Ok(base.config_dir().join(format!("systemd/user/{SERVICE_NAME}.service")))
         }
     }
 
@@ -85,7 +85,7 @@ mod platform {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::write(&path, unit).with_context(|| format!("writing {}", path.display()))?;
         systemctl(&["daemon-reload"])?;
-        systemctl(&["enable", "--now", "mcsd"])?;
+        systemctl(&["enable", "--now", SERVICE_NAME])?;
         println!("Installed systemd unit {}", path.display());
         if !is_root() {
             println!(
@@ -98,7 +98,7 @@ mod platform {
 
     pub fn uninstall() -> Result<()> {
         let path = unit_path()?;
-        let _ = systemctl(&["disable", "--now", "mcsd"]);
+        let _ = systemctl(&["disable", "--now", SERVICE_NAME]);
         if path.exists() {
             std::fs::remove_file(&path)?;
         }
