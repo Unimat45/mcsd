@@ -4,7 +4,6 @@ on:
   # Merging develop into main is a push to main. Pull requests and pushes to
   # other branches (develop, feature/*) do not build.
   push:
-    branches: [main]
     # Pushing a v* tag (on main) publishes a release.
     tags: ["v*"]
   # Manual run from the Actions tab.
