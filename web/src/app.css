@@ -1,51 +1,43 @@
-:root {
-  --bg: #0f1115;
-  --panel: #171a21;
-  --panel-2: #1e222b;
-  --border: #2a2f3a;
-  --text: #d7dbe0;
-  --muted: #8b93a1;
-  --accent: #5aa9e6;
-  --running: #4caf50;
-  --stopped: #6b7280;
-  --starting: #e6b25a;
-  --crashed: #e05a5a;
-  --errored: #e05a5a;
-  --stopping: #e6b25a;
+@import 'tailwindcss';
+
+@theme {
+	--font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-* { box-sizing: border-box; }
-
-html, body, #app {
-  height: 100%;
-  margin: 0;
-}
-
+html,
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
+	@apply bg-zinc-950 text-zinc-100 antialiased;
 }
 
-button {
-  font: inherit;
-  color: var(--text);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 14px;
-  cursor: pointer;
+.card {
+	@apply rounded-xl border border-zinc-800 bg-zinc-900/60;
 }
-button:hover:not(:disabled) { border-color: var(--accent); }
-button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-input {
-  font: inherit;
-  color: var(--text);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 10px;
+.btn {
+	@apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40;
 }
-input:focus { outline: none; border-color: var(--accent); }
+.btn-primary {
+	@apply bg-emerald-600 text-white hover:bg-emerald-500;
+}
+.btn-ghost {
+	@apply border border-zinc-700 text-zinc-200 hover:bg-zinc-800;
+}
+.btn-danger {
+	@apply border border-red-900 text-red-300 hover:bg-red-950;
+}
+
+.input {
+	@apply w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none placeholder:text-zinc-600 focus:border-emerald-500;
+}
+.label {
+	@apply mb-1 block text-xs font-medium tracking-wide text-zinc-400 uppercase;
+}
+
+/* tiny grass-block logo */
+.grass {
+	width: 18px;
+	height: 18px;
+	border-radius: 3px;
+	background: linear-gradient(#4ade80 0 35%, #92400e 35% 100%);
+	box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.25);
+}

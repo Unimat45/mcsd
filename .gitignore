@@ -1,2 +1,5 @@
-/bin/
-/internal/webui/dist/
+/target
+/web/node_modules
+/web/.svelte-kit
+/web/build
+/.dev

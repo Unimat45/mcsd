@@ -1,0 +1,6 @@
+{
+    "scripts": {
+        "build": "cd web && bun run build; cd .. && cargo build -r",
+        "start": "./target/release/mcsd daemon"
+    }
+}
