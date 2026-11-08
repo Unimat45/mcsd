@@ -90,14 +90,35 @@ ssh -L 8765:127.0.0.1:8765 user@minecraft-host   # then open http://127.0.0.1:87
 
 ## Development
 
+Tasks are in the [justfile](justfile) (`cargo install just`, then `just` lists them):
+
 ```sh
-cargo run -- daemon                # debug builds read web/build from disk
-cd web && npm run dev              # Vite on :5173, proxies /api to :8765 (MCSD_URL to change)
-cargo test && cargo clippy --all-targets
-cd web && npm run check
+just install      # npm ci for the dashboard (once)
+just dev          # debug daemon on ./.dev, port 8766, token "dev" (your real servers are untouched)
+just dev-web      # dashboard with hot reload on http://localhost:5173 (proxies to the dev daemon)
+just cli ls       # CLI against the dev daemon
+just check        # svelte-check + clippy (warnings = errors) + tests, same as CI
+just build        # release binary with the dashboard embedded
 ```
 
-## Cross-compiling
+A debug daemon serves `web/build` from disk: after `just web`, reload the page.
+
+## Releases
+
+`.github/workflows/build.yml` runs on pushes, pull requests and tags. It
+checks the dashboard, lints and tests on Windows, Linux and macOS, then builds:
+
+| Target | Runner |
+|---|---|
+| `x86_64-pc-windows-msvc` | windows |
+| `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu` | ubuntu + cargo-zigbuild (glibc 2.17, runs on old distros) |
+| `aarch64-apple-darwin`, `x86_64-apple-darwin` | macos |
+
+Pushing a `v*` tag (`git tag v0.1.0 && git push --tags`) publishes a GitHub
+release with the archives and `SHA256SUMS`. Tags with a `-` (`v0.2.0-rc1`) are
+marked as pre-releases.
+
+## Cross-compiling locally
 
 `ring` (TLS) needs a C toolchain for the target. The easiest option is
 [cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild):
@@ -105,11 +126,10 @@ cd web && npm run check
 ```sh
 pip install ziglang && cargo install --locked cargo-zigbuild
 rustup target add x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
-cargo zigbuild --release --target x86_64-unknown-linux-gnu
-cargo zigbuild --release --target aarch64-unknown-linux-gnu   # Raspberry Pi / ARM VPS
+just dist-linux   # x86_64 + arm64 (Raspberry Pi / ARM VPS), glibc 2.17
 ```
 
-Build macOS binaries on macOS (or in CI on a macOS runner): the linker needs Apple's SDK.
+macOS binaries need Apple's SDK to link: build them on a Mac or let CI do it.
 
 ## API
 
