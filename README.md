@@ -152,3 +152,7 @@ take `?token=` instead.
 | GET | `/versions/{kind}` | available versions |
 | GET/POST | `/java`, `/java/install` | runtimes / `{major}` |
 | GET | `/system` | host info |
+
+## License
+
+GPL-3.0-only. See [LICENSE](LICENSE).

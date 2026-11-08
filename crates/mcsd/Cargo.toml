@@ -3,7 +3,7 @@ name = "mcsd"
 version = "0.1.0"
 edition = "2024"
 description = "Daemon + web dashboard for creating and managing Minecraft servers"
-license = "MIT"
+license = "GPL-3.0-only"
 
 [dependencies]
 anyhow = "1.0.104"
